@@ -4,17 +4,18 @@ from shapely.geometry import Point
 
 # Load the dataset — update the file name if needed
 df = pd.read_csv("Registered_Business_Locations_-_San_Francisco_20250707.csv")
+print(df.columns)
 
 # Drop rows with missing locations or inactive businesses
-df = df[df['Location'].notnull()]
-df = df[df['Business Status'] == 'Active']
+df = df[df['Location Id'].notnull()]
+df = df[df['Business End Date'].isnull()]
 
 # Extract lat/lon from the Location column
-df[['Latitude', 'Longitude']] = df['Location'].str.extract(r"\(([^,]+), ([^)]+)\)").astype(float)
+df[['Longitude', 'Latitude']] = df['Location Id'].str.extract(r"\(([^,]+), ([^)]+)\)").astype(float)
 
 # Filter to relevant businesses
 categories = ['COFFEE', 'CAFE', 'TEA', 'SALON', 'RESTAURANT', 'MATCHA', 'BAR', 'SEX']
-df = df[df['NAICS Description'].str.contains('|'.join(categories), case=False, na=False)]
+df = df[df['NAICS Code Description'].str.contains('|'.join(categories), case=False, na=False)]
 
 # Tag simplified categories
 def tag_category(desc):
@@ -32,7 +33,7 @@ def tag_category(desc):
     else:
         return 'other'
 
-df['category'] = df['NAICS Description'].apply(tag_category)
+df['category'] = df['NAICS Code Description'].apply(tag_category)
 
 # Convert to GeoDataFrame
 gdf = gpd.GeoDataFrame(
@@ -42,6 +43,6 @@ gdf = gpd.GeoDataFrame(
 )
 
 # Export to GeoJSON for your interactive map
-gdf[['Business Name', 'Address', 'category', 'geometry']].to_file("cleaned_sf_businesses.geojson", driver="GeoJSON")
+gdf[['DBA Name', 'Street Address', 'category', 'geometry']].to_file("cleaned_sf_businesses.geojson", driver="GeoJSON")
 
 print("✅ Cleaned data exported to cleaned_sf_businesses.geojson")
